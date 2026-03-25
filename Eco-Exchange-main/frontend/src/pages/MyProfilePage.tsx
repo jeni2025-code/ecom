@@ -1,0 +1,507 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Calendar, Package, ArrowRight, ShieldCheck, Settings, TrendingUp, Handshake, ThumbsUp, AlertCircle } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import './HomePage.css'
+
+const API_URL = '/api'
+
+type UserProfile = {
+  id: number
+  name: string
+  email: string
+  phone: string
+  profile_image_url?: string
+  followers_count?: number
+  following_count?: number
+  successful_trades_count: number
+  community_vouches_count: number
+  trust_score: number
+  has_active_disputes: boolean
+  listings: any[]
+  received_reviews: any[]
+}
+
+export default function MyProfilePage({ token }: { token: string | null }) {
+  const { id } = useParams()
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'inventory' | 'reviews' | 'buying' | 'selling'>('inventory')
+  const [buyingHistory, setBuyingHistory] = useState<any[]>([])
+  const [sellingHistory, setSellingHistory] = useState<any[]>([])
+
+  useEffect(() => {
+    // If no ID is provided, we're viewing our own profile
+    const target = id ? `/users/${id}` : '/auth/me'
+    fetch(`${API_URL}${target}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.json())
+      .then(data => {
+        setProfile(data)
+        setLoading(false)
+      })
+
+    // Fetch history if viewing own profile
+    if (!id && token) {
+      fetch(`${API_URL}/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.json())
+        .then(data => setBuyingHistory(data))
+
+      fetch(`${API_URL}/sales`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.json())
+        .then(data => setSellingHistory(data))
+    }
+  }, [id, token])
+
+  const handleAcceptOrder = async (orderId: number) => {
+    if (!token) return
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}/accept`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        alert("Order accepted!")
+        // Refresh sales history
+        fetch(`${API_URL}/sales`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.json())
+          .then(data => setSellingHistory(data))
+      }
+    } catch (err) { console.error(err) }
+  }
+
+  const handleRejectOrder = async (orderId: number) => {
+    if (!token) return
+    if (!window.confirm("Are you sure you want to reject this request?")) return
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}/reject`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        alert("Order rejected")
+        // Refresh sales history
+        fetch(`${API_URL}/sales`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.json())
+          .then(data => setSellingHistory(data))
+      }
+    } catch (err) { console.error(err) }
+  }
+
+  if (loading) return <div className="loading-container-elite"><span>Retrieving community record...</span></div>
+  if (!profile) return <div className="error-card glass">Profile not found</div>
+
+  return (
+    <div className="community-profile-elite" style={{ display: 'flex', flexDirection: 'column', gap: '60px' }}>
+      <motion.section
+        className="profile-header-premium"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{
+          padding: '60px',
+          background: 'var(--surface-glass)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-glass)',
+          display: 'flex',
+          gap: '40px',
+          alignItems: 'center'
+        }}
+      >
+        <div className="profile-avatar-large" style={{
+          width: '120px',
+          height: '120px',
+          borderRadius: '50%',
+          background: 'var(--surface-glass-bright)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '2px solid var(--accent-emerald)',
+          fontSize: '3.5rem',
+          fontWeight: '700',
+          color: 'var(--accent-emerald)',
+          boxShadow: '0 0 30px rgba(16, 185, 129, 0.2)',
+          overflow: 'hidden'
+        }}>
+          {profile.profile_image_url ? (
+            <img src={profile.profile_image_url} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            profile.name?.[0] || 'U'
+          )}
+        </div>
+
+        <div className="profile-info-main" style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <h1 style={{ margin: 0, fontSize: '3rem' }} className="text-gradient">{profile.name}</h1>
+              <ShieldCheck size={28} className="emerald-glow" />
+            </div>
+
+            {!id && (
+              <Link to="/profile" className="btn-studio-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
+                <Settings size={16} />
+                <span>Manage Identity</span>
+              </Link>
+            )}
+          </div>
+
+          <div className="profile-stats-row" style={{ display: 'flex', gap: '32px', marginBottom: '24px' }}>
+            <div className="stat-item-elite">
+              <span className="stat-value">{profile.followers_count || 0}</span>
+              <span className="stat-label">Followers</span>
+            </div>
+            <div className="stat-item-elite">
+              <span className="stat-value">{profile.following_count || 0}</span>
+              <span className="stat-label">Following</span>
+            </div>
+            <div className="stat-item-elite">
+              <span className="stat-value">{profile.listings?.length || 0}</span>
+              <span className="stat-label">Assets</span>
+            </div>
+          </div>
+
+          <div className="profile-meta-row" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <div className="trust-badge-elite" style={{
+              background: profile.has_active_disputes ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+              color: profile.has_active_disputes ? '#ef4444' : '#10b981',
+              padding: '8px 16px',
+              borderRadius: '12px',
+              border: `1px solid ${profile.has_active_disputes ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: 700
+            }}>
+              <TrendingUp size={18} />
+              <span>Trust Score: {profile.trust_score}/10</span>
+              {profile.has_active_disputes && (
+                <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', fontSize: '0.75rem' }}>
+                  <AlertCircle size={14} />
+                  <span>Frozen Score (Active Dispute)</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              <Calendar size={16} />
+              <span>Joined 2026</span>
+            </div>
+          </div>
+
+          <div className="trust-bars-elite" style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+            <div className="trust-metric">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Handshake size={14} color="var(--accent-emerald)" />
+                  <span>Successful Trades</span>
+                </div>
+                <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>{profile.successful_trades_count} Completed</span>
+              </div>
+              <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (profile.successful_trades_count / 20) * 100)}%` }}
+                  style={{ height: '100%', background: 'var(--accent-emerald)', boxShadow: '0 0 10px var(--accent-emerald)' }}
+                />
+              </div>
+            </div>
+
+            <div className="trust-metric">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ThumbsUp size={14} color="#3b82f6" />
+                  <span>Community Vouches</span>
+                </div>
+                <span style={{ color: '#3b82f6', fontWeight: 700 }}>{profile.community_vouches_count} Social Credit</span>
+              </div>
+              <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (profile.community_vouches_count / 50) * 100)}%` }}
+                  style={{ height: '100%', background: '#3b82f6', boxShadow: '0 0 10px #3b82f6' }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.section >
+
+      <div className="profile-tabs-elite" style={{ display: 'flex', gap: '40px', borderBottom: '1px solid var(--border-glass)', marginBottom: '40px' }}>
+        <button
+          onClick={() => setActiveTab('inventory')}
+          style={{
+            padding: '16px 8px',
+            background: 'transparent',
+            border: 'none',
+            color: activeTab === 'inventory' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'inventory' ? '2px solid var(--accent-emerald)' : 'none',
+            fontWeight: 700,
+            cursor: 'pointer'
+          }}
+        >
+          Active Inventory
+        </button>
+        {!id && (
+          <>
+            <button
+              onClick={() => setActiveTab('buying')}
+              style={{
+                padding: '16px 8px',
+                background: 'transparent',
+                border: 'none',
+                color: activeTab === 'buying' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+                borderBottom: activeTab === 'buying' ? '2px solid var(--accent-emerald)' : 'none',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Buying History ({buyingHistory.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('selling')}
+              style={{
+                padding: '16px 8px',
+                background: 'transparent',
+                border: 'none',
+                color: activeTab === 'selling' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+                borderBottom: activeTab === 'selling' ? '2px solid var(--accent-emerald)' : 'none',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Selling History ({sellingHistory.length})
+            </button>
+          </>
+        )}
+        <button
+          onClick={() => setActiveTab('reviews')}
+          style={{
+            padding: '16px 8px',
+            background: 'transparent',
+            border: 'none',
+            color: activeTab === 'reviews' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'reviews' ? '2px solid var(--accent-emerald)' : 'none',
+            fontWeight: 700,
+            cursor: 'pointer'
+          }}
+        >
+          Ecosystem Proof ({profile.received_reviews?.length || 0})
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'inventory' ? (
+          <motion.section
+            key="inventory"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="profile-assets"
+          >
+            {(!profile.listings || profile.listings.length === 0) ? (
+              <div className="empty-state-elite">
+                <Package size={48} />
+                <p>No active catalog assets found.</p>
+              </div>
+            ) : (
+              <div className="listing-grid-elite">
+                {profile.listings.map((item: any) => (
+                  <motion.div key={item.id} className="elite-card-wrap">
+                    <article className="elite-card">
+                      <div className="card-image-wrap">
+                        <img src={item.images?.[0]?.url || 'https://placehold.co/400x400/1e293b/10b981?text=Listing'} alt="" className="elite-card-image" />
+                      </div>
+                      <div className="card-content-elite">
+                        <h3 className="card-title-elite">{item.title}</h3>
+                        <div className="card-footer-elite">
+                          <span className="price-elite">₹{item.price.toLocaleString()}</span>
+                          <Link to={`/listings/${item.id}`} className="btn-view-elite">
+                            <ArrowRight size={18} />
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.section>
+        ) : activeTab === 'buying' ? (
+          <motion.section
+            key="buying"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="profile-assets"
+          >
+            {buyingHistory.length === 0 ? (
+              <div className="empty-state-elite">
+                <Package size={48} />
+                <p>No orders found.</p>
+              </div>
+            ) : (
+              <div className="listing-grid-elite">
+                {buyingHistory.map((order: any) => (
+                  order.items?.map((item: any) => (
+                    <motion.div key={item.id} className="elite-card-wrap">
+                      <article className="elite-card">
+                        <div className="card-image-wrap">
+                          <img src={item.listing?.images?.[0]?.url || 'https://placehold.co/400x400/1e293b/10b981?text=Order'} alt="" className="elite-card-image" />
+                        </div>
+                        <div className="card-content-elite">
+                          <h3 className="card-title-elite">{item.listing?.title}</h3>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                            Order #{order.id} • {order.status}
+                          </div>
+                          <div className="card-footer-elite">
+                            <span className="price-elite">₹{item.price_at_order?.toLocaleString()}</span>
+                            <Link to={`/listings/${item.listing?.id}`} className="btn-view-elite">
+                              <ArrowRight size={18} />
+                            </Link>
+                          </div>
+                        </div>
+                      </article>
+                    </motion.div>
+                  ))
+                ))}
+              </div>
+            )}
+          </motion.section>
+        ) : activeTab === 'selling' ? (
+          <motion.section
+            key="selling"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            className="profile-assets"
+          >
+            {sellingHistory.length === 0 ? (
+              <div className="empty-state-elite">
+                <Package size={48} />
+                <p>No sales found.</p>
+              </div>
+            ) : (
+              <div className="listing-grid-elite">
+                {sellingHistory.map((order: any) => (
+                  order.items?.map((item: any) => (
+                    <motion.div key={item.id} className="elite-card-wrap">
+                      <article className="elite-card">
+                        <div className="card-image-wrap">
+                          <img src={item.listing?.images?.[0]?.url || 'https://placehold.co/400x400/1e293b/10b981?text=Sale'} alt="" className="elite-card-image" />
+                        </div>
+                        <div className="card-content-elite">
+                          <h3 className="card-title-elite">{item.listing?.title}</h3>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                            {order.status === 'ongoing' ? 'New Buy Request' : `Status: ${order.status}`}
+                          </div>
+                          <div className="card-footer-elite" style={{ flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                            <span className="price-elite">₹{item.price_at_order?.toLocaleString()}</span>
+                            
+                            {order.status === 'ongoing' && (
+                              <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '8px' }}>
+                                <button 
+                                  onClick={() => handleAcceptOrder(order.id)}
+                                  className="btn-chat-premium"
+                                  style={{ flex: 1, background: 'var(--accent-emerald)', border: 'none', color: '#fff', padding: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
+                                >
+                                  Accept
+                                </button>
+                                <button 
+                                  onClick={() => handleRejectOrder(order.id)}
+                                  className="btn-chat-premium"
+                                  style={{ flex: 1, background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#ef4444', padding: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+
+                            {order.status === 'pending' && (
+                              <span style={{ color: 'var(--accent-emerald)', fontSize: '0.9rem', fontWeight: 700, marginTop: '8px' }}>Accepted (Pending Trade)</span>
+                            )}
+
+                            <Link to={`/listings/${item.listing?.id}`} className="btn-view-elite" style={{ position: 'absolute', right: '12px', top: '12px' }}>
+                              <ArrowRight size={18} />
+                            </Link>
+                          </div>
+                        </div>
+                      </article>
+                    </motion.div>
+                  ))
+                ))}
+              </div>
+            )}
+          </motion.section>
+        ) : (
+          <motion.section
+            key="reviews"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            className="profile-reviews"
+          >
+            {(!profile.received_reviews || profile.received_reviews.length === 0) ? (
+              <div className="empty-state-elite">
+                <ShieldCheck size={48} />
+                <p>You have yet to anchor your legacy with verified trades.</p>
+              </div>
+            ) : (
+              <div className="reviews-list-elite" style={{ display: 'grid', gap: '24px' }}>
+                {profile.received_reviews.map((rev: any) => (
+                  <div key={rev.id} className="review-card-elite glass" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="stars-elite" style={{ color: 'var(--accent-gold)', display: 'flex', gap: '2px' }}>
+                          {[...Array(10)].map((_, i) => (
+                            <span key={i} style={{ opacity: i < rev.rating ? 1 : 0.2 }}>★</span>
+                          ))}
+                        </div>
+                        <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{rev.rating}/10</span>
+                      </div>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Verified Trade Record</span>
+                    </div>
+
+                    <p style={{ margin: '0 0 16px', fontStyle: 'italic', color: 'var(--text-primary)' }}>"{rev.comment}"</p>
+
+                    {rev.order?.items?.[0] && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <img
+                          src={rev.order.items[0].listing?.images?.[0]?.url || 'https://placehold.co/50x50'}
+                          alt=""
+                          style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px' }}
+                        />
+                        <div>
+                          <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Verified Asset Recieved</span>
+                          <span style={{ fontWeight: 600 }}>{rev.order.items[0].listing?.title}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {rev.media_url && (
+                      <div style={{ marginTop: '16px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
+                        <img src={rev.media_url} alt="Review verification" style={{ width: '100%', maxHeight: '400px', objectFit: 'cover' }} />
+                        <div style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '8px', fontSize: '0.7rem', textAlign: 'center', fontWeight: 700 }}>
+                          <ShieldCheck size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                          MEDIA VERIFIED: TIMESTAMP & SIGNATURE CHECK COMPLETED
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.section>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
