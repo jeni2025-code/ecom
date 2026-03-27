@@ -4,9 +4,7 @@ import { motion } from 'framer-motion'
 import { MessageSquare, Clock, ChevronRight, Package } from 'lucide-react'
 import './Chat.css'
 
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? `http://${window.location.hostname}:8000`
-    : '/api'
+import { API_URL } from '../config'
 
 type Conversation = {
     id: number
@@ -97,3 +95,4 @@ export default function ChatListPage({ token }: { token: string | null }) {
         </div>
     )
 }
+

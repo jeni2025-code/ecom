@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import './DashboardPage.css'
 
-const API_URL = '/api'
+import { API_URL } from '../config'
 
 export default function DashboardPage({ token }: { token: string | null }) {
     const [stats, setStats] = useState<any>(null)
@@ -356,3 +356,4 @@ export default function DashboardPage({ token }: { token: string | null }) {
         </div>
     )
 }
+

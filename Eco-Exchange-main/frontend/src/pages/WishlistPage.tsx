@@ -4,9 +4,7 @@ import { motion } from 'framer-motion'
 import { Heart, ArrowRight, MapPin } from 'lucide-react'
 import './HomePage.css' // Reuse listing card styles
 
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? `http://${window.location.hostname}:8000`
-    : '/api'
+import { API_URL } from '../config'
 
 type Listing = {
     id: number
@@ -141,3 +139,4 @@ export default function WishlistPage({ token }: { token: string | null }) {
         </div>
     )
 }
+

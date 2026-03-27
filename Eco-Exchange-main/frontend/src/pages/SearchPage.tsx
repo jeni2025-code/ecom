@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Search, MapPin, ArrowRight, Eye } from 'lucide-react'
 import './HomePage.css'
 
-const API_URL = '/api'
+import { API_URL } from '../config'
 
 export default function SearchPage({ token }: { token: string | null }) {
     const [searchParams] = useSearchParams()
@@ -92,3 +92,4 @@ export default function SearchPage({ token }: { token: string | null }) {
         </div>
     )
 }
+

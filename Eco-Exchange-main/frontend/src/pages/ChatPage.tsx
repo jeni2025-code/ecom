@@ -4,11 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Paperclip, Send, ArrowLeft, ShieldCheck, User, X, FileText, Check, CheckCheck } from 'lucide-react'
 import './Chat.css'
 
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? `http://${window.location.hostname}:8000`
-    : '/api'
-
-const WS_URL = API_URL.replace('http', 'ws')
+import { API_URL, WS_URL } from '../config'
 
 type Message = {
     id: number
@@ -306,3 +302,4 @@ export default function ChatPage({ token }: { token: string | null }) {
         </div>
     )
 }
+
